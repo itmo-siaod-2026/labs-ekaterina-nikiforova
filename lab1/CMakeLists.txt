@@ -14,10 +14,16 @@ add_library(${EXTENDIBLE_LIB} src/extendible_hash.cpp)
 # ========== ТЕСТЫ ==========
 add_executable(extendible_hash_tests
         tests/extendible_hash_tests.cpp
-        ${TEST_UTILS}
 )
 target_link_libraries(extendible_hash_tests
         ${EXTENDIBLE_LIB}
         GTest::gtest
         GTest::gtest_main
+)
+
+add_executable(extendible_bench_tests
+        tests/extandible_bench_tests.cpp
+)
+target_link_libraries(extendible_bench_tests
+        ${EXTENDIBLE_LIB}
 )

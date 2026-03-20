@@ -7,7 +7,7 @@
 
 using namespace itmo_algo;
 
-TableStatus ExtendibleHashing::createTable(const std::string &file_path, uint32_t bucket_capacity)
+TableStatus ExtendibleHashing::createTable(const std::string& file_path, uint32_t bucket_capacity)
 {
     if (bucket_capacity == 0)
         return TableStatus::InvalidCapacity;
@@ -30,44 +30,41 @@ TableStatus ExtendibleHashing::createTable(const std::string &file_path, uint32_
         return TableStatus::IoError;
     }
 
-    void *ptr = mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    void* ptr = mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED)
     {
         close(fd);
         return TableStatus::AllocationError;
     }
 
-    std::memset(static_cast<uint8_t *>(ptr) + sizeof(Header), 0, max_dir_size_bytes);
+    std::memset(static_cast<uint8_t*>(ptr) + sizeof(Header), 0, max_dir_size_bytes);
 
-    Header *h = static_cast<Header *>(ptr);
+    Header* h = static_cast<Header*>(ptr);
     h->global_depth = kInitialGlobalDepth;
     h->max_global_depth = kMaxGlobalDepth;
     h->bucket_capacity = bucket_capacity;
     h->bucket_count = max_buckets_count;
-    h->directory_offset = sizeof(Header);
     h->first_bucket_offset = sizeof(Header) + max_dir_size_bytes;
     h->file_size = file_size;
 
-    uint64_t *dir = reinterpret_cast<uint64_t *>(static_cast<uint8_t *>(ptr) + h->directory_offset);
+    uint64_t* dir = reinterpret_cast<uint64_t*>(static_cast<uint8_t*>(ptr) + sizeof(Header));
 
     for (uint64_t i = 0; i < max_buckets_count; ++i)
     {
         uint64_t current_bucket_offset = h->first_bucket_offset + (i * _bucket_size);
         dir[i] = current_bucket_offset;
 
-        uint8_t *b_ptr = static_cast<uint8_t *>(ptr) + current_bucket_offset;
-        BucketHeader *bh = reinterpret_cast<BucketHeader *>(b_ptr);
+        uint8_t* b_ptr = static_cast<uint8_t*>(ptr) + current_bucket_offset;
+        BucketHeader* bh = reinterpret_cast<BucketHeader*>(b_ptr);
         bh->local_depth = kInitialGlobalDepth;
         bh->count = 0;
     }
-
-    msync(ptr, file_size, MS_SYNC);
     munmap(ptr, file_size);
     close(fd);
     return TableStatus::Ok;
 }
 
-TableStatus ExtendibleHashing::openTable(const std::string &file_path, uint32_t bucket_capacity)
+TableStatus ExtendibleHashing::openTable(const std::string& file_path, uint32_t bucket_capacity)
 {
     _fd = open(file_path.c_str(), O_RDWR);
 
@@ -92,7 +89,7 @@ TableStatus ExtendibleHashing::openTable(const std::string &file_path, uint32_t 
     if (_mmap_ptr == MAP_FAILED)
         return TableStatus::AllocationError;
 
-    _header = static_cast<Header *>(_mmap_ptr);
+    _header = static_cast<Header*>(_mmap_ptr);
     if (_header->bucket_capacity == 0)
         return TableStatus::InvalidFile;
 
@@ -105,7 +102,6 @@ TableStatus ExtendibleHashing::remapFile(uint64_t new_size)
     if (_mmap_ptr != nullptr && _mmap_ptr != MAP_FAILED)
     {
         uint64_t old_size = _header->file_size;
-        msync(_mmap_ptr, old_size, MS_SYNC);
         munmap(_mmap_ptr, old_size);
     }
 
@@ -116,7 +112,7 @@ TableStatus ExtendibleHashing::remapFile(uint64_t new_size)
     if (_mmap_ptr == MAP_FAILED)
         return TableStatus::AllocationError;
 
-    _header = static_cast<Header *>(_mmap_ptr);
+    _header = static_cast<Header*>(_mmap_ptr);
     _header->file_size = new_size;
     return TableStatus::Ok;
 }
@@ -127,7 +123,7 @@ TableStatus ExtendibleHashing::duplicateDirectory()
         return TableStatus::TableFull;
 
     uint64_t old_entries_count = (1ULL << _header->global_depth);
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     if (!dir)
         return TableStatus::AllocationError;
 
@@ -138,7 +134,7 @@ TableStatus ExtendibleHashing::duplicateDirectory()
     return TableStatus::Ok;
 }
 
-TableStatus ExtendibleHashing::createNewBucket(uint32_t depth, uint64_t &out_offset)
+TableStatus ExtendibleHashing::createNewBucket(uint32_t depth, uint64_t& out_offset)
 {
     out_offset = _header->file_size;
     uint64_t new_file_size = _header->file_size + _bucket_size;
@@ -148,7 +144,7 @@ TableStatus ExtendibleHashing::createNewBucket(uint32_t depth, uint64_t &out_off
         return s;
 
     _header->bucket_count++;
-    BucketHeader *bh = getBucketHeader(out_offset);
+    BucketHeader* bh = getBucketHeader(out_offset);
     bh->local_depth = depth;
     bh->count = 0;
     return TableStatus::Ok;
@@ -174,13 +170,13 @@ TableStatus ExtendibleHashing::splitBucket(uint32_t dir_idx)
     if (s != TableStatus::Ok)
         return s;
 
-    BucketHeader *old_bh = getBucketHeader(bucket_offset);
-    BucketHeader *new_bh = getBucketHeader(new_bucket_offset);
+    BucketHeader* old_bh = getBucketHeader(bucket_offset);
+    BucketHeader* new_bh = getBucketHeader(new_bucket_offset);
 
     old_bh->local_depth++;
 
-    Entry *old_entries = getBucketEntries(bucket_offset);
-    Entry *new_entries = getBucketEntries(new_bucket_offset);
+    Entry* old_entries = getBucketEntries(bucket_offset);
+    Entry* new_entries = getBucketEntries(new_bucket_offset);
 
     uint32_t old_total = old_bh->count;
     old_bh->count = 0;
@@ -195,7 +191,7 @@ TableStatus ExtendibleHashing::splitBucket(uint32_t dir_idx)
             old_entries[old_bh->count++] = current;
     }
 
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     uint64_t dir_size = (1ULL << _header->global_depth);
     uint64_t bit_mask = (1ULL << (old_bh->local_depth - 1));
 
@@ -215,17 +211,17 @@ TableStatus ExtendibleHashing::insertRecord(int64_t key, int64_t value)
         return TableStatus::DuplicateKey;
 
     uint64_t dir_idx = getDirectoryIndex(key);
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     if (!dir)
         return TableStatus::AllocationError;
 
     uint64_t bucket_offset = dir[dir_idx];
 
-    BucketHeader *bh = getBucketHeader(bucket_offset);
+    BucketHeader* bh = getBucketHeader(bucket_offset);
     if (!bh)
         return TableStatus::AllocationError;
 
-    Entry *entries = getBucketEntries(bucket_offset);
+    Entry* entries = getBucketEntries(bucket_offset);
 
     for (uint32_t i = 0; i < bh->count; i++)
     {
@@ -253,13 +249,13 @@ TableStatus ExtendibleHashing::insertRecord(int64_t key, int64_t value)
 TableStatus ExtendibleHashing::removeRecord(int64_t key)
 {
     uint64_t dir_idx = getDirectoryIndex(key);
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     if (!dir)
         return TableStatus::AllocationError;
     uint64_t bucket_offset = dir[dir_idx];
 
-    BucketHeader *bh = getBucketHeader(bucket_offset);
-    Entry *entries = getBucketEntries(bucket_offset);
+    BucketHeader* bh = getBucketHeader(bucket_offset);
+    Entry* entries = getBucketEntries(bucket_offset);
 
     for (uint32_t i = 0; i < bh->count; i++)
     {
@@ -277,13 +273,13 @@ TableStatus ExtendibleHashing::removeRecord(int64_t key)
 TableStatus ExtendibleHashing::updateRecord(int64_t key, int64_t value)
 {
     uint64_t dir_idx = getDirectoryIndex(key);
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     if (!dir)
         return TableStatus::NotFound;
     uint64_t bucket_offset = dir[dir_idx];
 
-    BucketHeader *bh = getBucketHeader(bucket_offset);
-    Entry *entries = getBucketEntries(bucket_offset);
+    BucketHeader* bh = getBucketHeader(bucket_offset);
+    Entry* entries = getBucketEntries(bucket_offset);
 
     if (!bh || !entries)
         return TableStatus::NotFound;
@@ -299,17 +295,17 @@ TableStatus ExtendibleHashing::updateRecord(int64_t key, int64_t value)
     return TableStatus::NotFound;
 }
 
-TableStatus ExtendibleHashing::getRecord(int64_t key, int64_t &value)
+TableStatus ExtendibleHashing::getRecord(int64_t key, int64_t& value)
 {
     uint64_t dir_idx = getDirectoryIndex(key);
-    uint64_t *dir = getDirectoryStart();
+    uint64_t* dir = getDirectoryStart();
     if (!dir)
         return TableStatus::NotFound;
 
     uint64_t bucket_offset = dir[dir_idx];
 
-    BucketHeader *bh = getBucketHeader(bucket_offset);
-    Entry *entries = getBucketEntries(bucket_offset);
+    BucketHeader* bh = getBucketHeader(bucket_offset);
+    Entry* entries = getBucketEntries(bucket_offset);
 
     for (uint32_t i = 0; i < bh->count; ++i)
     {
@@ -326,7 +322,9 @@ void ExtendibleHashing::closeTable()
 {
     if (_mmap_ptr != nullptr && _mmap_ptr != MAP_FAILED)
     {
+        fdatasync(_fd);
         msync(_mmap_ptr, _header->file_size, MS_SYNC);
+        madvise(_mmap_ptr, _header->file_size, MADV_DONTNEED);
         munmap(_mmap_ptr, _header->file_size);
         _mmap_ptr = nullptr;
         _header = nullptr;
@@ -343,32 +341,32 @@ uint64_t ExtendibleHashing::getDirectoryIndex(uint64_t key)
     return hash(key) & ((1ULL << _header->global_depth) - 1);
 }
 
-uint64_t *ExtendibleHashing::getDirectoryStart() const
+uint64_t* ExtendibleHashing::getDirectoryStart() const
 {
     if (_mmap_ptr == nullptr || _mmap_ptr == MAP_FAILED)
         return nullptr;
-    return reinterpret_cast<uint64_t *>(static_cast<uint8_t *>(_mmap_ptr) + _header->directory_offset);
+    return reinterpret_cast<uint64_t*>(static_cast<uint8_t*>(_mmap_ptr) + sizeof(Header));
 }
 
-BucketHeader *ExtendibleHashing::getBucketHeader(uint64_t bucket_offset) const
+BucketHeader* ExtendibleHashing::getBucketHeader(uint64_t bucket_offset) const
 {
     if (_mmap_ptr == nullptr || _mmap_ptr == MAP_FAILED)
         return nullptr;
     if (bucket_offset == 0 || bucket_offset + sizeof(BucketHeader) > _header->file_size)
         return nullptr;
 
-    uint8_t *base = static_cast<uint8_t *>(_mmap_ptr);
-    return reinterpret_cast<BucketHeader *>(base + bucket_offset);
+    uint8_t* base = static_cast<uint8_t*>(_mmap_ptr);
+    return reinterpret_cast<BucketHeader*>(base + bucket_offset);
 }
 
-Entry *ExtendibleHashing::getBucketEntries(uint64_t bucket_offset) const
+Entry* ExtendibleHashing::getBucketEntries(uint64_t bucket_offset) const
 {
-    BucketHeader *bh = getBucketHeader(bucket_offset);
+    BucketHeader* bh = getBucketHeader(bucket_offset);
     if (!bh)
         return nullptr;
 
-    uint8_t *bucket_start = reinterpret_cast<uint8_t *>(bh);
-    return reinterpret_cast<Entry *>(bucket_start + sizeof(BucketHeader));
+    uint8_t* bucket_start = reinterpret_cast<uint8_t*>(bh);
+    return reinterpret_cast<Entry*>(bucket_start + sizeof(BucketHeader));
 }
 
 uint64_t ExtendibleHashing::hash(int64_t key)
