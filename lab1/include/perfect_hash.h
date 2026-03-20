@@ -1,10 +1,18 @@
 #pragma once
-
+#include <cstdint>
 #include <limits>
 #include <vector>
+#include <optional>
 
 namespace itmo_algo
 {
+    struct Entry
+    {
+        int64_t key;
+        int64_t value;
+        static constexpr int64_t kEmpty = std::numeric_limits<int64_t>::min();
+    };
+
     struct HashParams
     {
         size_t a;
@@ -15,10 +23,8 @@ namespace itmo_algo
     struct SubTable
     {
         HashParams params;
-        std::vector<int> cells;
+        std::vector<Entry> cells;
         bool initialized = false;
-
-        static constexpr int kEmpty = std::numeric_limits<int>::min();
 
         SubTable() : params{0, 0, 0}, initialized(false)
         {
@@ -30,15 +36,15 @@ namespace itmo_algo
     class PerfectHash
     {
     public:
-        explicit PerfectHash(const std::vector<int>& keys);
-        bool find(int key) const;
+        explicit PerfectHash(const std::vector<Entry>& data);
+        std::optional<int64_t> get(int64_t key) const;
 
     private:
         size_t _n;
         HashParams _first_level_params;
         std::vector<SubTable> _second_level_tables;
 
-        size_t hash(int key, const HashParams& p) const;
-        void build(const std::vector<int>& keys);
+        size_t hash(int64_t key, const HashParams& p) const;
+        void build(const std::vector<Entry>& data);
     };
 }

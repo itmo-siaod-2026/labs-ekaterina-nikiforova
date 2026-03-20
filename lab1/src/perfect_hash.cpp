@@ -1,43 +1,47 @@
-#include "../include/perfect_hash.h"
-#include <random>
+#include "perfect_hash.h"
 #include <algorithm>
+#include <random>
 
 using namespace itmo_algo;
 
-PerfectHash::PerfectHash(const std::vector<int>& keys)
+PerfectHash::PerfectHash(const std::vector<Entry>& data)
 {
-    if (keys.empty())
+    if (data.empty())
     {
         _n = 0;
         return;
     }
-    std::vector<int> unique_keys = keys;
 
-    std::ranges::sort(unique_keys);
-    unique_keys.erase(std::ranges::unique(unique_keys).begin(), unique_keys.end());
+    std::vector<Entry> unique_data = data;
+    std::ranges::sort(unique_data, {}, &Entry::key);
+    auto [first, last] = std::ranges::unique(unique_data, [](const Entry& a, const Entry& b)
+    {
+        return a.key == b.key;
+    });
+    unique_data.erase(first, last);
 
-    _n = unique_keys.size();
-    build(unique_keys);
+    _n = unique_data.size();
+    build(unique_data);
 }
 
-size_t PerfectHash::hash(int key, const HashParams& p) const
+size_t PerfectHash::hash(int64_t key, const HashParams& p) const
 {
     if (p.m == 0) return 0;
-    unsigned __int128 val = static_cast<unsigned __int128>(p.a) * static_cast<unsigned int>(key);
+    unsigned __int128 val = static_cast<unsigned __int128>(p.a) * static_cast<uint64_t>(key);
     val += p.b;
     return static_cast<size_t>((val % kPrimeP) % p.m);
 }
 
-void PerfectHash::build(const std::vector<int>& keys)
+void PerfectHash::build(const std::vector<Entry>& data)
 {
     _first_level_params.m = _n;
-    _second_level_tables.resize(_n);
+    _second_level_tables.assign(_n, SubTable());
 
     std::mt19937 gen(1337);
     std::uniform_int_distribution<size_t> dist_a(1, kPrimeP - 1);
     std::uniform_int_distribution<size_t> dist_b(0, kPrimeP - 1);
 
-    std::vector<std::vector<int>> buckets(_n);
+    std::vector<std::vector<Entry>> buckets(_n);
     bool success_level1 = false;
 
     while (!success_level1)
@@ -48,8 +52,8 @@ void PerfectHash::build(const std::vector<int>& keys)
         for (auto& bucket : buckets)
             bucket.clear();
 
-        for (int k : keys)
-            buckets[hash(k, _first_level_params)].push_back(k);
+        for (const auto& e : data)
+            buckets[hash(e.key, _first_level_params)].push_back(e);
 
         size_t sum_n_sq = 0;
         for (const auto& bucket : buckets)
@@ -62,19 +66,10 @@ void PerfectHash::build(const std::vector<int>& keys)
     for (size_t i = 0; i < _n; ++i)
     {
         if (buckets[i].empty()) continue;
+        size_t m_j = (buckets[i].size() == 1) ? 1 : buckets[i].size() * buckets[i].size();
 
-        const size_t keys_in_first_bucker = buckets[i].size();
-        if (keys_in_first_bucker == 1)
-        {
-            _second_level_tables[i].params = {0, 0, 1};
-            _second_level_tables[i].cells.push_back(buckets[i][0]);
-            _second_level_tables[i].initialized = true;
-            continue;
-        }
-
-        const size_t m_j = keys_in_first_bucker * keys_in_first_bucker;
         _second_level_tables[i].params.m = m_j;
-        _second_level_tables[i].cells.assign(m_j, SubTable::kEmpty);
+        _second_level_tables[i].cells.assign(m_j, {Entry::kEmpty, 0});
         _second_level_tables[i].initialized = true;
 
         bool collision = true;
@@ -83,31 +78,36 @@ void PerfectHash::build(const std::vector<int>& keys)
             collision = false;
             _second_level_tables[i].params.a = dist_a(gen);
             _second_level_tables[i].params.b = dist_b(gen);
-            std::fill(_second_level_tables[i].cells.begin(), _second_level_tables[i].cells.end(), SubTable::kEmpty);
+            std::fill(_second_level_tables[i].cells.begin(), _second_level_tables[i].cells.end(),
+                      Entry{Entry::kEmpty, 0});
 
-            for (const int k : buckets[i])
+            for (const auto& e : buckets[i])
             {
-                size_t h2 = hash(k, _second_level_tables[i].params);
-                if (_second_level_tables[i].cells[h2] != SubTable::kEmpty)
+                size_t h2 = hash(e.key, _second_level_tables[i].params);
+                if (_second_level_tables[i].cells[h2].key != Entry::kEmpty)
                 {
                     collision = true;
                     break;
                 }
-                _second_level_tables[i].cells[h2] = k;
+                _second_level_tables[i].cells[h2] = e;
             }
         }
     }
 }
 
-bool PerfectHash::find(int key) const
+std::optional<int64_t> PerfectHash::get(int64_t key) const
 {
-    if (_n == 0) return false;
+    if (_n == 0)
+        return std::nullopt;
 
     size_t h1 = hash(key, _first_level_params);
-    const SubTable& st = _second_level_tables[h1];
-
-    if (!st.initialized) return false;
+    const auto& st = _second_level_tables[h1];
+    if (!st.initialized)
+        return std::nullopt;
 
     size_t h2 = hash(key, st.params);
-    return st.cells[h2] == key;
+    if (st.cells[h2].key == key)
+        return st.cells[h2].value;
+
+    return std::nullopt;
 }
