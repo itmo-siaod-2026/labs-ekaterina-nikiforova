@@ -38,3 +38,10 @@ target_link_libraries(perfect_hash-test
         GTest::gtest
         GTest::gtest_main
 )
+
+add_executable(perfect_bench_tests
+        tests/perfect_bench_tests.cpp
+)
+target_link_libraries(perfect_bench_tests
+        ${PERFECT_LIB}
+)
