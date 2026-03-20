@@ -6,8 +6,11 @@ using namespace itmo_algo;
 
 PerfectHash::PerfectHash(const std::vector<int>& keys)
 {
-    if (_n == 0)
+    if (keys.empty())
+    {
+        _n = 0;
         return;
+    }
     std::vector<int> unique_keys = keys;
 
     std::ranges::sort(unique_keys);

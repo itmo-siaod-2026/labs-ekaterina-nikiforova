@@ -30,10 +30,10 @@ target_link_libraries(extendible_bench_tests
         ${EXTENDIBLE_LIB}
 )
 
-add_executable(${PERFECT_LIB}-test
+add_executable(perfect_hash-test
         tests/perfect_hash_tests.cpp
 )
-target_link_libraries(${PERFECT_LIB}-test
+target_link_libraries(perfect_hash-test
         ${PERFECT_LIB}
         GTest::gtest
         GTest::gtest_main
