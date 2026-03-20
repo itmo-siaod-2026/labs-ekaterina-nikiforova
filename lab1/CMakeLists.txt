@@ -8,8 +8,10 @@ include_directories(${INCLUDE_DIR})
 
 # ========== БИБЛИОТЕКИ ==========
 set(EXTENDIBLE_LIB extendible_hash-lib)
+set(PERFECT_LIB perfect_hash-lib)
 
 add_library(${EXTENDIBLE_LIB} src/extendible_hash.cpp)
+add_library(${PERFECT_LIB} src/perfect_hash.cpp)
 
 # ========== ТЕСТЫ ==========
 add_executable(extendible_hash_tests
@@ -26,4 +28,13 @@ add_executable(extendible_bench_tests
 )
 target_link_libraries(extendible_bench_tests
         ${EXTENDIBLE_LIB}
+)
+
+add_executable(${PERFECT_LIB}-test
+        tests/perfect_hash_tests.cpp
+)
+target_link_libraries(${PERFECT_LIB}-test
+        ${PERFECT_LIB}
+        GTest::gtest
+        GTest::gtest_main
 )
