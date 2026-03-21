@@ -20,8 +20,10 @@ public:
 
     DocID addDocument(const std::string& local_text);
 
-    // std::set<DocID> findCandidates(const std::string& local_text) const;
+    std::set<DocID> findCandidates(const std::string& local_text) const;
+
     std::set<DocID> findCandidatesById(DocID local_id) const;
+
     std::vector<DocID> findDuplicatesFullScan(const std::string& local_text, double local_threshold) const;
 
 private:
@@ -39,6 +41,7 @@ private:
 
     std::vector<PermutationFunc> _pi_functions;
 
+    std::unordered_map<DocID, std::set<NgramHash>> _docs_n_grams;
     std::unordered_map<DocID, VSignature> _docs_signatures;
 
     std::vector<std::unordered_map<size_t, std::vector<DocID>>> _lsh_ht_tables;
@@ -47,4 +50,6 @@ private:
     std::set<NgramHash> buildNgramSet(const std::string& local_text) const;
     VSignature buildSignature(const std::set<NgramHash>& local_n_grams) const;
     size_t getBandBucketHash(const VSignature& doc_signature, int local_band_idx) const;
+
+    std::set<DocID> findCandidatesInternal(const VSignature& sig) const;
 };
