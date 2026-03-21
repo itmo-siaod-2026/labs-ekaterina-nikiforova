@@ -9,9 +9,11 @@ include_directories(${INCLUDE_DIR})
 # ========== БИБЛИОТЕКИ ==========
 set(EXTENDIBLE_LIB extendible_hash-lib)
 set(PERFECT_LIB perfect_hash-lib)
+set(MINLSH_LIB min_lsh_hash-lib)
 
 add_library(${EXTENDIBLE_LIB} src/extendible_hash.cpp)
 add_library(${PERFECT_LIB} src/perfect_hash.cpp)
+add_library(${MINLSH_LIB} src/min_lsh_hash.cpp)
 
 # ========== ТЕСТЫ ==========
 add_executable(extendible_hash_tests
