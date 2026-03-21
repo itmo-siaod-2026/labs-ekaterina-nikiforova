@@ -47,3 +47,13 @@ add_executable(perfect_bench_tests
 target_link_libraries(perfect_bench_tests
         ${PERFECT_LIB}
 )
+
+add_executable(min_hash-test
+        tests/min_hash_tests.cpp
+)
+target_link_libraries(min_hash-test
+        ${MINLSH_LIB}
+        GTest::gtest
+        GTest::gtest_main
+)
+
