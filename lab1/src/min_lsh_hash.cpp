@@ -118,3 +118,23 @@ std::set<DocID> MinHashLSH::findCandidatesById(DocID local_id) const
     candidates.erase(local_id);
     return candidates;
 }
+
+std::vector<DocID> MinHashLSH::findDuplicatesFullScan(const std::string& text, double threshold) const
+{
+    std::vector<DocID> duplicates;
+    auto query_ngrams = buildNgramSet(text);
+
+    for (const auto& [id, stored_ngrams] : _docs_n_grams)
+    {
+        std::vector<NgramHash> intersect;
+        std::ranges::set_intersection(query_ngrams, stored_ngrams,
+                                      std::back_inserter(intersect));
+
+        double u_size = query_ngrams.size() + stored_ngrams.size() - intersect.size();
+        double jaccard = (u_size == 0) ? 0 : (double)intersect.size() / u_size;
+
+        if (jaccard >= threshold)
+            duplicates.push_back(id);
+    }
+    return duplicates;
+}
