@@ -8,7 +8,7 @@
 #include <random>
 
 using DocID = size_t;
-using NgramHash = uint32_t;
+using NgramHash = uint64_t;
 using VSignature = std::vector<uint32_t>;
 
 class MinHashLSH
@@ -16,7 +16,7 @@ class MinHashLSH
 public:
     static constexpr uint64_t kPrime = 4294967291u;
 
-    MinHashLSH(int m_permutations = 64, int b_bands = 8, int n_gram_size = 8);
+    MinHashLSH(int m_permutations = 128, int b_bands = 16, int shingle_size = 2);
 
     DocID addDocument(const std::string& local_text);
 
@@ -30,7 +30,7 @@ private:
     int _m_permutations;
     int _bands_count;
     int _rows_per_band;
-    int _n_gram_size;
+    int _shingle_size;
     DocID _next_id;
 
     struct PermutationFunc

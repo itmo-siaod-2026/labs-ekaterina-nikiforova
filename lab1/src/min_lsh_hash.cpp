@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <limits>
+#include <sstream>
+#include <string_view>
 
-MinHashLSH::MinHashLSH(int m_permutations, int b_bands, int n_gram_size)
+MinHashLSH::MinHashLSH(int m_permutations, int b_bands, int shingle_size)
     : _m_permutations(m_permutations), _bands_count(b_bands),
-      _n_gram_size(n_gram_size), _next_id(0)
+      _shingle_size(shingle_size), _next_id(0)
 {
     _rows_per_band = _m_permutations / _bands_count;
     _lsh_ht_tables.resize(_bands_count);
@@ -24,17 +26,35 @@ void MinHashLSH::initPermutations()
 
 std::set<NgramHash> MinHashLSH::buildNgramSet(const std::string& text) const
 {
-    std::set<NgramHash> n_grams;
-    if (text.length() < _n_gram_size)
-        return n_grams;
-
-    for (size_t i = 0; i <= text.length() - _n_gram_size; ++i)
+    std::set<NgramHash> shingles;
+    std::string normalized_text;
+    for (char c : text)
     {
-        std::string_view n_gram(text.data() + i, _n_gram_size);
-        uint32_t h = static_cast<uint32_t>(std::hash<std::string_view>{}(n_gram));
-        n_grams.insert(h);
+        if (std::isalpha(c) || std::isspace(c))
+            normalized_text += std::tolower(c);
     }
-    return n_grams;
+
+    std::stringstream ss(normalized_text);
+    std::vector<std::string> words;
+    std::string word;
+    while (ss >> word)
+        words.push_back(word);
+
+    if (words.size() < _shingle_size)
+    {
+        if (_shingle_size == 1 && !words.empty())
+            shingles.insert(std::hash<std::string>{}(words[0]));
+        return shingles;
+    }
+
+    for (size_t i = 0; i <= words.size() - _shingle_size; ++i)
+    {
+        std::string shingle_text;
+        for (int j = 0; j < _shingle_size; ++j)
+            shingle_text += words[i + j] + " ";
+        shingles.insert(std::hash<std::string>{}(shingle_text));
+    }
+    return shingles;
 }
 
 VSignature MinHashLSH::buildSignature(const std::set<NgramHash>& n_grams) const
@@ -45,7 +65,7 @@ VSignature MinHashLSH::buildSignature(const std::set<NgramHash>& n_grams) const
         for (int i = 0; i < _m_permutations; ++i)
         {
             uint32_t pi_val = static_cast<uint32_t>(
-                (_pi_functions[i].a * static_cast<uint64_t>(ngram_hash) + _pi_functions[i].b) % kPrime
+                (static_cast<unsigned __int128>(_pi_functions[i].a) * ngram_hash + _pi_functions[i].b) % kPrime
             );
             if (pi_val < sig[i])
                 sig[i] = pi_val;
@@ -70,16 +90,17 @@ DocID MinHashLSH::addDocument(const std::string& text)
 {
     DocID id = _next_id++;
     std::set<NgramHash> n_grams = buildNgramSet(text);
-    _docs_n_grams[id] = std::move(n_grams);
-
     VSignature doc_signature = buildSignature(n_grams);
-    _docs_signatures[id] = doc_signature;
 
     for (int i = 0; i < _bands_count; ++i)
     {
         size_t h_bucket = getBandBucketHash(doc_signature, i);
         _lsh_ht_tables[i][h_bucket].push_back(id);
     }
+
+    _docs_n_grams[id] = std::move(n_grams);
+    _docs_signatures[id] = std::move(doc_signature);
+
     return id;
 }
 
@@ -93,10 +114,7 @@ std::set<DocID> MinHashLSH::findCandidatesInternal(const VSignature& sig) const
 
         auto it_table = _lsh_ht_tables[i].find(h_bucket);
         if (it_table != _lsh_ht_tables[i].end())
-        {
-            for (DocID cand_id : it_table->second)
-                candidates.insert(cand_id);
-        }
+            candidates.insert(it_table->second.begin(), it_table->second.end());
     }
     return candidates;
 }
@@ -124,14 +142,19 @@ std::vector<DocID> MinHashLSH::findDuplicatesFullScan(const std::string& text, d
     std::vector<DocID> duplicates;
     auto query_ngrams = buildNgramSet(text);
 
+    if (query_ngrams.empty())
+        return duplicates;
+
     for (const auto& [id, stored_ngrams] : _docs_n_grams)
     {
+        if (stored_ngrams.empty()) continue;
+
         std::vector<NgramHash> intersect;
         std::ranges::set_intersection(query_ngrams, stored_ngrams,
                                       std::back_inserter(intersect));
 
         double u_size = query_ngrams.size() + stored_ngrams.size() - intersect.size();
-        double jaccard = (u_size == 0) ? 0 : (double)intersect.size() / u_size;
+        double jaccard = (u_size == 0) ? 1.0 : (double)intersect.size() / u_size;
 
         if (jaccard >= threshold)
             duplicates.push_back(id);
