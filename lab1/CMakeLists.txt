@@ -26,7 +26,7 @@ target_link_libraries(extendible_hash_tests
 )
 
 add_executable(extendible_bench_tests
-        tests/extandible_bench_tests.cpp
+        tests/extendible_bench_tests.cpp
 )
 target_link_libraries(extendible_bench_tests
         ${EXTENDIBLE_LIB}
