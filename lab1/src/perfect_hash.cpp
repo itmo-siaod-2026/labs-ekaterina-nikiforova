@@ -1,38 +1,25 @@
 #include "perfect_hash.h"
-#include <algorithm>
 #include <random>
 
 using namespace itmo_algo;
 
-PerfectHash::PerfectHash(const std::vector<Entry>& data)
+PerfectHash::PerfectHash(const std::unordered_map<int64_t, int64_t>& data)
+    : _n(data.size())
 {
-    if (data.empty())
-    {
-        _n = 0;
-        return;
-    }
-
-    std::vector<Entry> unique_data = data;
-    std::ranges::sort(unique_data, {}, &Entry::key);
-    auto [first, last] = std::ranges::unique(unique_data, [](const Entry& a, const Entry& b)
-    {
-        return a.key == b.key;
-    });
-    unique_data.erase(first, last);
-
-    _n = unique_data.size();
-    build(unique_data);
+    if (_n > 0)
+        build(data);
 }
 
 size_t PerfectHash::hash(int64_t key, const HashParams& p) const
 {
-    if (p.m == 0) return 0;
+    if (p.m == 0)
+        return 0;
     unsigned __int128 val = static_cast<unsigned __int128>(p.a) * static_cast<uint64_t>(key);
     val += p.b;
     return static_cast<size_t>((val % kPrimeP) % p.m);
 }
 
-void PerfectHash::build(const std::vector<Entry>& data)
+void PerfectHash::build(const std::unordered_map<int64_t, int64_t>& data)
 {
     _first_level_params.m = _n;
     _second_level_tables.assign(_n, SubTable());
@@ -52,8 +39,8 @@ void PerfectHash::build(const std::vector<Entry>& data)
         for (auto& bucket : buckets)
             bucket.clear();
 
-        for (const auto& e : data)
-            buckets[hash(e.key, _first_level_params)].push_back(e);
+        for (const auto& [key, value] : data)
+            buckets[hash(key, _first_level_params)].push_back({key, value});
 
         size_t sum_n_sq = 0;
         for (const auto& bucket : buckets)
@@ -65,31 +52,32 @@ void PerfectHash::build(const std::vector<Entry>& data)
 
     for (size_t i = 0; i < _n; ++i)
     {
-        if (buckets[i].empty()) continue;
-        size_t m_j = (buckets[i].size() == 1) ? 1 : buckets[i].size() * buckets[i].size();
+        if (buckets[i].empty())
+            continue;
 
-        _second_level_tables[i].params.m = m_j;
-        _second_level_tables[i].cells.assign(m_j, {Entry::kEmpty, 0});
-        _second_level_tables[i].initialized = true;
+        size_t m_j = (buckets[i].size() == 1) ? 1 : buckets[i].size() * buckets[i].size();
+        auto& st = _second_level_tables[i];
+        st.params.m = m_j;
+        st.cells.assign(m_j, {kEmpty, 0});
+        st.initialized = true;
 
         bool collision = true;
         while (collision)
         {
             collision = false;
-            _second_level_tables[i].params.a = dist_a(gen);
-            _second_level_tables[i].params.b = dist_b(gen);
-            std::fill(_second_level_tables[i].cells.begin(), _second_level_tables[i].cells.end(),
-                      Entry{Entry::kEmpty, 0});
+            st.params.a = dist_a(gen);
+            st.params.b = dist_b(gen);
+            std::fill(st.cells.begin(), st.cells.end(), Entry{kEmpty, 0});
 
             for (const auto& e : buckets[i])
             {
-                size_t h2 = hash(e.key, _second_level_tables[i].params);
-                if (_second_level_tables[i].cells[h2].key != Entry::kEmpty)
+                size_t h2 = hash(e.key, st.params);
+                if (st.cells[h2].key != kEmpty)
                 {
                     collision = true;
                     break;
                 }
-                _second_level_tables[i].cells[h2] = e;
+                st.cells[h2] = e;
             }
         }
     }
