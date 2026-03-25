@@ -1,36 +1,56 @@
 #pragma once
-
-#include <vector>
-#include <string>
-#include <set>
-#include <unordered_map>
 #include <cstdint>
-#include <random>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
-using DocID = size_t;
-using NgramHash = uint64_t;
-using VSignature = std::vector<uint32_t>;
+using DocID = uint64_t;
+using NgramHash = size_t;
+using NgramsSet = std::unordered_set<NgramHash>;
+using VSignature = std::vector<uint64_t>;
+
+struct StoredDocument
+{
+    std::string text;
+    NgramsSet n_grams;
+    VSignature signature;
+};
 
 class MinHashLSH
 {
 public:
-    static constexpr uint64_t kPrime = 4294967291u;
+    struct Match
+    {
+        DocID id;
+        double score;
+    };
 
-    MinHashLSH(int m_permutations = 128, int b_bands = 16, int shingle_size = 2);
+    explicit MinHashLSH(int64_t m_permutations = 64, int64_t b_bands = 8, int64_t shingle_size = 2);
 
-    DocID addDocument(const std::string& local_text);
+    DocID addDocument(const std::string& text);
 
-    std::set<DocID> findCandidates(const std::string& local_text) const;
-
+    std::set<DocID> findCandidates(const std::string& text) const;
     std::set<DocID> findCandidatesById(DocID local_id) const;
 
-    std::vector<DocID> findDuplicatesFullScan(const std::string& local_text, double local_threshold) const;
+    std::vector<Match> findDuplicates(const std::string& text, double threshold) const;
+    std::vector<Match> fullScanDuplicates(const std::string& text, double threshold) const;
+
+    std::string getDocumentText(DocID id) const;
 
 private:
-    int _m_permutations;
-    int _bands_count;
-    int _rows_per_band;
-    int _shingle_size;
+    std::set<DocID> findCandidatesInternal(const VSignature& sig) const;
+
+    NgramsSet buildNgramSet(const std::string& text) const;
+    VSignature buildSignature(const NgramsSet& n_grams) const;
+    size_t getBandBucketHash(const VSignature& sig, int64_t band_idx) const;
+    static double calculateJaccard(const NgramsSet& s1, const NgramsSet& s2);
+
+    int64_t _m_permutations;
+    int64_t _bands_count;
+    int64_t _rows_per_band;
+    int64_t _shingle_size;
     DocID _next_id;
 
     struct PermutationFunc
@@ -40,16 +60,10 @@ private:
     };
 
     std::vector<PermutationFunc> _pi_functions;
+    static constexpr uint64_t kPrime = (1ULL << 61) - 1;
 
-    std::unordered_map<DocID, std::set<NgramHash>> _docs_n_grams;
-    std::unordered_map<DocID, VSignature> _docs_signatures;
-
+    std::unordered_map<DocID, StoredDocument> _docs_storage;
     std::vector<std::unordered_map<size_t, std::vector<DocID>>> _lsh_ht_tables;
 
     void initPermutations();
-    std::set<NgramHash> buildNgramSet(const std::string& local_text) const;
-    VSignature buildSignature(const std::set<NgramHash>& local_n_grams) const;
-    size_t getBandBucketHash(const VSignature& doc_signature, int local_band_idx) const;
-
-    std::set<DocID> findCandidatesInternal(const VSignature& sig) const;
 };

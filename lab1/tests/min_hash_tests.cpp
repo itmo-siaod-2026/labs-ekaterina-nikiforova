@@ -1,52 +1,63 @@
 #include <gtest/gtest.h>
 #include "min_lsh_hash.h"
 
-class AnimalLSHTest : public ::testing::Test
+class MinHashBoundaryTest : public ::testing::Test
 {
 protected:
-    MinHashLSH index{128, 32, 1};
+    MinHashLSH lsh{64, 8, 2};
 };
 
-TEST_F(AnimalLSHTest, LionExactMatch)
+TEST_F(MinHashBoundaryTest, AddingIdenticalTexts)
 {
-    std::string text = "The lion is a species in the family Felidae; it is a muscular, deep-chested cat.";
-    DocID id = index.addDocument(text);
-    auto candidates = index.findCandidates(text);
-    EXPECT_TRUE(candidates.count(id));
+    std::string text = "unique document content";
+    DocID id1 = lsh.addDocument(text);
+    DocID id2 = lsh.addDocument(text);
+
+    EXPECT_NE(id1, id2);
+
+    auto candidates = lsh.findCandidatesById(id1);
+    EXPECT_TRUE(candidates.contains(id2));
 }
 
-TEST_F(AnimalLSHTest, PenguinFamilySearch)
+TEST_F(MinHashBoundaryTest, FindByNonExistentId)
 {
-    DocID parent_id = index.addDocument("Emperor penguins are the tallest and heaviest of all living penguin species.");
-    DocID chick_id = index.addDocument(
-        "Emperor penguins are the tallest and heaviest penguin species, even the chicks.");
-    auto candidates = index.findCandidatesById(parent_id);
-    EXPECT_TRUE(candidates.count(chick_id));
-}
-
-TEST_F(AnimalLSHTest, WhaleNearDuplicate)
-{
-    index.addDocument("Blue whales travel thousands of miles every year to feed in cold polar waters.");
-    std::string query = "Blue whales travel thousands of miles every year to breed in warm tropical waters.";
-    auto candidates = index.findCandidates(query);
-    EXPECT_FALSE(candidates.empty());
-}
-
-TEST_F(AnimalLSHTest, WolfIsNotShark)
-{
-    index.addDocument("Gray wolves are highly adaptable to various environments, from tundras to forests.");
-    std::string another_animal =
-        "The great white shark is a species of large lamniform shark found in coastal surface waters.";
-    auto candidates = index.findCandidates(another_animal);
+    auto candidates = lsh.findCandidatesById(999999);
     EXPECT_TRUE(candidates.empty());
 }
 
-TEST_F(AnimalLSHTest, GiraffePartialOverlap)
+TEST_F(MinHashBoundaryTest, TextShorterThanShingle)
 {
-    index.addDocument("Giraffes are the tallest living terrestrial animals and the largest ruminants.");
-    index.addDocument("Giraffes use their extremely long necks to reach leaves and buds high in trees.");
+    DocID id = lsh.addDocument("Hello");
 
-    auto fs_results = index.findDuplicatesFullScan("Giraffes are large animals with very long necks.", 0.15);
+    auto results = lsh.findDuplicates("hello", 0.9);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].id, id);
+}
 
-    EXPECT_GE(fs_results.size(), 1);
+TEST_F(MinHashBoundaryTest, TotallyDifferentTexts)
+{
+    lsh.addDocument("apple banana orange");
+    lsh.addDocument("computer processor memory");
+
+    auto matches = lsh.findDuplicates("weather rain clouds", 0.1);
+    EXPECT_TRUE(matches.empty());
+}
+
+TEST_F(MinHashBoundaryTest, EmptyStringHandling)
+{
+    DocID id = lsh.addDocument("");
+
+    EXPECT_NO_THROW({
+        auto results = lsh.findDuplicates("", 0.1);
+        });
+}
+
+TEST_F(MinHashBoundaryTest, NormalizationTest)
+{
+    DocID id1 = lsh.addDocument("Data   Science");
+
+    auto results = lsh.findDuplicates("data science", 0.9);
+
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].id, id1);
 }

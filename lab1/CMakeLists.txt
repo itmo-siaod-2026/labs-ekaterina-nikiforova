@@ -31,6 +31,12 @@ add_executable(extendible_bench_tests
 target_link_libraries(extendible_bench_tests
         ${EXTENDIBLE_LIB}
 )
+add_executable(extendible_perf_tests
+        tests/extendible_perf_tests.cpp
+)
+target_link_libraries(extendible_perf_tests
+        ${EXTENDIBLE_LIB}
+)
 
 add_executable(perfect_hash-test
         tests/perfect_hash_tests.cpp
@@ -57,3 +63,9 @@ target_link_libraries(min_hash-test
         GTest::gtest_main
 )
 
+add_executable(min_hash_bench_tests
+        tests/min_hash_bench_tests.cpp
+)
+target_link_libraries(min_hash_bench_tests
+        ${MINLSH_LIB}
+)
