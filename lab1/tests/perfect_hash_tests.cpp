@@ -6,19 +6,20 @@
 #include "perfect_hash.h"
 
 using namespace itmo_algo;
+using Dictionary = std::unordered_map<int64_t, int64_t>;
 
 TEST(PerfectHashTest, BasicSearch)
 {
-    std::vector<Entry> data = {
+    Dictionary data = {
         {1, 100}, {5, 500}, {42, 4200}, {100, 10000}, {-500, -5000}
     };
     PerfectHash ph(data);
 
-    for (const auto& e : data)
+    for (const auto& [key,val] : data)
     {
-        auto result = ph.get(e.key);
-        ASSERT_TRUE(result.has_value()) << "Should find key: " << e.key;
-        EXPECT_EQ(*result, e.value) << "Value mismatch for key: " << e.key;
+        auto result = ph.get(key);
+        ASSERT_TRUE(result.has_value()) << "Should find key: " << key;
+        EXPECT_EQ(*result, val) << "Value mismatch for key: " << key;
     }
 
     EXPECT_FALSE(ph.get(0).has_value());
@@ -27,7 +28,7 @@ TEST(PerfectHashTest, BasicSearch)
 
 TEST(PerfectHashTest, EmptyInput)
 {
-    std::vector<Entry> data = {};
+    Dictionary data;
     PerfectHash ph(data);
 
     EXPECT_FALSE(ph.get(0).has_value());
@@ -36,7 +37,7 @@ TEST(PerfectHashTest, EmptyInput)
 
 TEST(PerfectHashTest, SingleInput)
 {
-    std::vector<Entry> data = {{1, 777}};
+    Dictionary data = {{1, 777}};
     PerfectHash ph(data);
 
     auto result = ph.get(1);
@@ -46,7 +47,7 @@ TEST(PerfectHashTest, SingleInput)
 
 TEST(PerfectHashTest, HandleDuplicates)
 {
-    std::vector<Entry> data = {
+    Dictionary data = {
         {10, 1}, {20, 2}, {10, 3}, {30, 4}, {10, 5}
     };
 
@@ -58,7 +59,6 @@ TEST(PerfectHashTest, HandleDuplicates)
 
     EXPECT_FALSE(ph.get(15).has_value());
 }
-
 
 int main(int argc, char** argv)
 {
