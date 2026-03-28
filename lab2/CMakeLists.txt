@@ -24,3 +24,6 @@ target_link_libraries(quadtree_tests
 add_executable(quadtree_bench_tests
         tests/quadtree_bench_tests.cpp
 )
+target_link_libraries(quadtree_bench_tests
+        ${QUADTREE_LIB}
+)
