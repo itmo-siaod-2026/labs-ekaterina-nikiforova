@@ -24,7 +24,6 @@ def process_quadtree_benchmark(csv_path):
                  x='N', y='Latency_ns', color='crimson',
                  marker='o', errorbar=('ci', 95), ax=ax1)
     ax1.set_title('Quadtree Latency: INSERT (Point Insertion)', fontsize=14, fontweight='bold')
-    ax1.set_xscale('log')
     ax1.set_ylabel('Latency (ns/op)')
     ax1.set_xlabel('Number of Points (N)')
 
@@ -32,7 +31,6 @@ def process_quadtree_benchmark(csv_path):
                  x='N', y='Latency_ns', color='teal',
                  marker='s', errorbar=('ci', 95), ax=ax2)
     ax2.set_title('Quadtree Latency: GET (Spatial Query Range)', fontsize=14, fontweight='bold')
-    ax2.set_xscale('log')
     ax2.set_ylabel('Latency (ns/query)')
     ax2.set_xlabel('Number of Points (N)')
 
