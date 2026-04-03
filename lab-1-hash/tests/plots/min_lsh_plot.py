@@ -10,7 +10,7 @@ import io
 def process_benchmark(csv_data):
     df = pd.read_csv(csv_data)
 
-    os.makedirs('report/data', exist_ok=True)
+    os.makedirs('lab-1-hash/report/data', exist_ok=True)
 
     operations = ['ADD_ns', 'LSH_SEARCH_ns', 'FULL_SCAN_ns']
     sns.set_theme(style="whitegrid")
@@ -33,7 +33,7 @@ def process_benchmark(csv_data):
     ax2.set_ylabel('ns/op')
 
     plt.tight_layout()
-    plt.savefig('report/data/lsh_performance_plot.png', dpi=300)
+    plt.savefig('lab-1-hash/report/data/lsh_performance_plot.png', dpi=300)
     plt.show()
 
     stats = df_melted.groupby(['N', 'Operation'])['Latency_ns'].agg(['mean', 'std', 'count']).reset_index()
@@ -49,7 +49,7 @@ def process_benchmark(csv_data):
 
     print("\n" + final_output)
 
-    with open("report/data/lsh_latency_table.txt", "w", encoding="utf-8") as f:
+    with open("lab-1-hash/report/data/lsh_latency_table.txt", "w", encoding="utf-8") as f:
         f.write(final_output)
 
 
