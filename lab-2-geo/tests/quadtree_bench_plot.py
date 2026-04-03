@@ -35,8 +35,8 @@ def process_quadtree_benchmark(csv_path):
     ax2.set_xlabel('Number of Points (N)')
 
     plt.tight_layout()
-    plt.savefig('report/data/quadtree_latency_plot.png', dpi=300)
-    print("[OK] График сохранен: report/data/quadtree_latency_plot.png")
+    plt.savefig('lab-2-geo/report/data/quadtree_latency_plot.png', dpi=300)
+    print("[OK] График сохранен: lab-2-geo/report/data/quadtree_latency_plot.png")
     plt.show()
 
     # Формирование таблицы результатов
@@ -56,9 +56,9 @@ def process_quadtree_benchmark(csv_path):
 
     print("\n" + final_output)
 
-    with open("report/data/quadtree_latency_table.txt", "w", encoding="utf-8") as f:
+    with open("lab-2-geo/report/data/quadtree_latency_table.txt", "w", encoding="utf-8") as f:
         f.write(final_output)
-    print("[OK] Таблица сохранена: report/data/quadtree_latency_table.txt")
+    print("[OK] Таблица сохранена: lab-2-geo/report/data/quadtree_latency_table.txt")
 
 
 if __name__ == "__main__":

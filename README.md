@@ -7,4 +7,4 @@
 ## 📑 Лабораторные работы
 | № | Тема работы | Отчет | Исходники |
 |:--|:---|:---:|:---:|
-| 2 | **Геопоиск по Lat/Lng на карте** | [📄 PDF](report/lab2.pdf) / [📝 Typ](report/lab2.typ) | [💻 Code](lab-2-geo) |
+| 2 | **Геопоиск по Lat/Lng на карте** | [📄 PDF](lab-2-geo/report/lab2.pdf) / [📝 Typ](lab-2-geo/report/lab2.typ) | [💻 Code](lab-2-geo) |
