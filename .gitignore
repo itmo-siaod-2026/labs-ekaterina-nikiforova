@@ -4,3 +4,12 @@ cmake-build-relwithdebinfo
 .idea
 tmp
 lab-1-hash/tests/perf_reports
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+.gradle/
+build/
