@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 2, timeUnit = TimeUnit.SECONDS)
+@Fork(1)
 public class MapBenchmark {
 
     @State(Scope.Benchmark)
@@ -43,6 +44,10 @@ public class MapBenchmark {
             return counter;
         }
     }
+
+    // ==========================================
+    // --- 1. ОДНОПОТОЧНЫЕ ТЕСТЫ (Threads = 1) ---
+    // ==========================================
 
     @Benchmark
     @Threads(1)
@@ -81,6 +86,71 @@ public class MapBenchmark {
     public void put_3_JDKConcurrentMap(MapState state, ThreadState threadState) {
         int k = threadState.getNextKey();
         state.jdkConcurrentMap.put(k, k);
+    }
+
+    @Benchmark
+    @Threads(1)
+    public Integer merge_1_SimpleMap(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        return state.simpleMap.merge(k, 1, Integer::sum);
+    }
+
+    @Benchmark
+    @Threads(1)
+    public Integer merge_2_CustomConcurrentMap(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        return state.customConcurrentMap.merge(k, 1, Integer::sum);
+    }
+
+    @Benchmark
+    @Threads(1)
+    public Integer merge_3_JDKConcurrentMap(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        return state.jdkConcurrentMap.merge(k, 1, Integer::sum);
+    }
+
+    // ===========================================
+    // --- 2. МНОГОПОТОЧНЫЕ ТЕСТЫ (Threads = 4) ---
+    // ===========================================
+
+    @Benchmark
+    @Threads(4)
+    public Integer get_4_CustomConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        return state.customConcurrentMap.get(threadState.getNextKey());
+    }
+
+    @Benchmark
+    @Threads(4)
+    public Integer get_5_JDKConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        return state.jdkConcurrentMap.get(threadState.getNextKey());
+    }
+
+    @Benchmark
+    @Threads(4)
+    public void put_4_CustomConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        state.customConcurrentMap.put(k, k);
+    }
+
+    @Benchmark
+    @Threads(4)
+    public void put_5_JDKConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        state.jdkConcurrentMap.put(k, k);
+    }
+
+    @Benchmark
+    @Threads(4)
+    public Integer merge_4_CustomConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        return state.customConcurrentMap.merge(k, 1, Integer::sum);
+    }
+
+    @Benchmark
+    @Threads(4)
+    public Integer merge_5_JDKConcurrentMap_Concurrent(MapState state, ThreadState threadState) {
+        int k = threadState.getNextKey();
+        return state.jdkConcurrentMap.merge(k, 1, Integer::sum);
     }
 
     public static void main(String[] args) throws Exception {
