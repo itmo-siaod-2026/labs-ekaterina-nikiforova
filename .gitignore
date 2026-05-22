@@ -13,3 +13,6 @@ lab-1-hash/tests/perf_reports
 target/
 .gradle/
 build/
+
+*gz
+*.iml
